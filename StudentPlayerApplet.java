@@ -4,6 +4,15 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 
+public class StudentPlayerApplet extends Applet
+{
+    private static final long serialVersionUID = 1L;
+    public void init() {
+        setLayout(new BorderLayout());
+        add(BorderLayout.CENTER, new Player(getParameter("file")));
+    }
+}
+
 class Player extends Panel implements Runnable {
     private static final long serialVersionUID = 1L;
     private TextField textfield;
@@ -49,8 +58,6 @@ class Player extends Panel implements Runnable {
 
             int oneSecond = (int) (format.getChannels() * format.getSampleRate() * 
                        format.getSampleSizeInBits()/8 );
-            byte[] audioChunk1 = new byte[oneSecond];
-            byte[] audioChunk2 = new byte[oneSecond];
 
             BoundedBuffer b = new BoundedBuffer(oneSecond);
 
@@ -65,6 +72,8 @@ class Player extends Panel implements Runnable {
             cthread.start();
 
             pthread.join();
+            System.out.println("Pclosed");
+
             cthread.join();
             
             line.drain();
@@ -113,7 +122,6 @@ class Consumer implements Runnable{
     }
 }
 
-
 class Producer implements Runnable{
     byte[] audioChunk;
     int oneSecond, bytesRead;
@@ -132,6 +140,7 @@ class Producer implements Runnable{
         try{
             while(bytesRead!=-1){
                 bytesRead=s.read(audioChunk);
+                System.out.println(bytesRead);
                 b.insertChunk(audioChunk);
             }
             b.done();
@@ -140,17 +149,6 @@ class Producer implements Runnable{
             e.printStackTrace();
             System.out.println("Producer interrupted");
         }
-    }
-}
-
-
-
-public class StudentPlayerApplet extends Applet
-{
-    private static final long serialVersionUID = 1L;
-    public void init() {
-        setLayout(new BorderLayout());
-        add(BorderLayout.CENTER, new Player(getParameter("file")));
     }
 }
 
@@ -172,9 +170,10 @@ class BoundedBuffer{
         transfer=new byte[chunkSize];
     }
 
-    public void done(){
-        while(amountOccupied>0);
+    public synchronized void done(){
+        while(amountOccupied>0)try{wait();}catch(InterruptedException e){}
         isDone=true;
+        notifyAll();
     }
 
     public boolean isDone(){return isDone;}

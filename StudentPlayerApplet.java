@@ -5,14 +5,14 @@ import java.awt.event.*;
 import java.io.*;
 
 class Player extends Panel implements Runnable {
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 1L;
     private TextField textfield;
     private TextArea textarea;
     private Font font;
     private String filename;
 
     public Player(String filename){
-        // building the window for the player
+
         font = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
         textfield = new TextField();
         textarea = new TextArea();
@@ -22,19 +22,16 @@ class Player extends Panel implements Runnable {
         add(BorderLayout.SOUTH, textfield);
         add(BorderLayout.CENTER, textarea);
 
-
-        //listens for input from keyboard, add listener to view
-        textfield.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                textarea.append("You said: " + e.getActionCommand() + "\n");
-                textfield.setText("");
+        textfield.addActionListener(
+            new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    textarea.append("You said: " + e.getActionCommand() + "\n");
+                    textfield.setText("");
+                }
             }
-        });
+        );
 
-        //get filename from Player init to be played
         this.filename = filename;
-
-        // once setup, start the thread
         new Thread(this).start();
     }
 
@@ -43,37 +40,46 @@ class Player extends Panel implements Runnable {
         try {
             AudioInputStream s = AudioSystem.getAudioInputStream(new File(filename));
             AudioFormat format = s.getFormat();     
+            System.out.println("Audio format: " + format.toString());
 
             DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
             if (!AudioSystem.isLineSupported(info)) {
                 throw new UnsupportedAudioFileException();
             }
 
-            int oneSecond = (int) (format.getChannels() * format.getSampleRate() * format.getSampleSizeInBits() / 8);
-            
-            SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info);
-            
-            line.open(format);
-            line.start();
+            int oneSecond = (int) (format.getChannels() * format.getSampleRate() * 
+                       format.getSampleSizeInBits()/8 );
+            byte[] audioChunk1 = new byte[oneSecond];
+            byte[] audioChunk2 = new byte[oneSecond];
 
-            BoundedBuffer b = new BoundedBuffer(10, oneSecond);
+            BoundedBuffer b = new BoundedBuffer(oneSecond);
+
+            SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info);
+            line.open(format, oneSecond);
+            line.start();
             
-            Thread pthread = new Thread(new Producer(b, s, oneSecond));
-            Thread cthread = new Thread(new Consumer(b, line, oneSecond));
-            cthread.start();
+            Thread pthread = new Thread(new Producer(oneSecond, s, b));
+            Thread cthread = new Thread(new Consumer(oneSecond, line, b));
+
             pthread.start();
 
             
+            /*int bytesRead = 0;
+            while(bytesRead!=-1){
+                audioChunk1 = b.removeChunk();  
+
+                line.write(audioChunk1, 0, audioChunk1.length);
+            }*/
+            
+            
+            cthread.start();
             
             pthread.join();
             cthread.join();
-            
+
             line.drain();
             line.stop();
             line.close();
-            
-            
-
         } catch (UnsupportedAudioFileException e ) {
             System.out.println("Player initialisation failed");
             e.printStackTrace();
@@ -86,13 +92,66 @@ class Player extends Panel implements Runnable {
             System.out.println("Player initialisation failed");
             e.printStackTrace();
             System.exit(1);
-        } catch (InterruptedException e){
-            System.out.println("IE exception thrown");
+        } catch(InterruptedException e){
+            System.out.println("IE");
             e.printStackTrace();
             System.exit(1);
         }
     }
 }
+
+class Consumer implements Runnable{
+    byte[] audioChunk;
+    int oneSecond, bytesRead;
+    SourceDataLine line;
+    BoundedBuffer b;
+
+    Consumer(int oneSecond0, SourceDataLine line0, BoundedBuffer b0){
+        oneSecond=oneSecond0;
+        line=line0;
+        b=b0;
+        audioChunk= new byte[oneSecond];
+        bytesRead=0;
+    }
+
+    public void run(){
+        while(!b.isDone()){
+            audioChunk=b.removeChunk();
+            line.write(audioChunk, 0, audioChunk.length);
+        }
+    }
+}
+
+
+class Producer implements Runnable{
+    byte[] audioChunk;
+    int oneSecond, bytesRead;
+    AudioInputStream s;
+    BoundedBuffer b;
+
+    Producer(int oneSecond0, AudioInputStream s0, BoundedBuffer b0){
+        oneSecond=oneSecond0;
+        s=s0;
+        b=b0;
+        audioChunk= new byte[oneSecond];
+        bytesRead=0;
+    }
+
+    public void run(){
+        try{
+            while(bytesRead!=-1){
+                bytesRead=s.read(audioChunk);
+                b.insertChunk(audioChunk);
+            }
+            b.done();
+        } catch(IOException e){
+            e.printStackTrace();
+            System.out.println("Producer interrupted");
+        }
+    }
+}
+
+
 
 public class StudentPlayerApplet extends Applet
 {
@@ -103,208 +162,75 @@ public class StudentPlayerApplet extends Applet
     }
 }
 
-class Producer implements Runnable{ // read into buffer from AudioInputStream
-    public BoundedBuffer buffer;
-    public AudioInputStream s;
-    private int oneSecond;
 
-    public Producer(BoundedBuffer buffer0, AudioInputStream stream0, int oneSecond0){
-        this.buffer = buffer0;
-        this.s = stream0;
-        this.oneSecond = oneSecond0;
+class BoundedBuffer{
+    byte[] bufferArray;
+    byte[] transfer;
+    int nextIn, nextOut, amountOccupied, chunkSize, i, j;
+    boolean isFull, isEmpty, isDone;
+
+    BoundedBuffer(int chunkSize0){
+        bufferArray=new byte[10*chunkSize0];
+        nextIn=0;
+        nextOut=0;
+        amountOccupied=1;
+        chunkSize=chunkSize0;
+        isFull=true;
+        isEmpty=true;
+        isDone=false;
+        transfer=new byte[chunkSize];
+        i=0;
+        j=0;
     }
 
-    public void run(){
+    public void done(){
+        while(amountOccupied>0);
+        isDone=true;
+    }
 
+    public boolean isDone(){return isDone;}
+
+    public synchronized void insertChunk(byte[] input){
         try{
-            byte[] audioChunk = new byte[oneSecond];
-            int bytesRead = s.read(audioChunk, 0, oneSecond);
-
-            while(bytesRead!=-1){
-                buffer.insertChunk(audioChunk);
-                bytesRead = s.read(audioChunk, 0, oneSecond);
+            while(amountOccupied==10){
+                wait();
             }
-        }
-        catch (IOException e) {
-            System.out.println("Player initialisation failed");
+            for(i=0; i < input.length; i++){
+                bufferArray[(nextIn+i)%(chunkSize*10)]=input[i];
+            }
+            nextIn+=input.length%(chunkSize*10);
+            amountOccupied++;
+            notifyAll();
+        } catch(InterruptedException e){
             e.printStackTrace();
-            System.exit(1);
+            System.out.println("Insert chunk failed");
+        } catch(ArrayIndexOutOfBoundsException e){
+            e.printStackTrace();
+            System.out.println("i = "+i+", nextIn = "+nextIn+", input.length = "+input.length+", bufferArray.length = "+bufferArray.length);
         }
-    }
-}
-
-
-class Consumer implements Runnable{ //write to audio line
-    public BoundedBuffer buffer;
-    public SourceDataLine line;
-    private int oneSecond;
-
-    public Consumer(BoundedBuffer b0, SourceDataLine line0, int oneSecond0){
-        this.buffer = b0;
-        this.line=line0;
-        this.oneSecond = oneSecond0;
-    }
-
-    public void run(){
-        byte[] audioChunk = buffer.removeChunk();
-        while(true){
-            line.write(audioChunk, 0, oneSecond);
-            audioChunk = buffer.removeChunk();
-        }
-    }
-}
-
-class BoundedBuffer{
-    class Chunk{
-        byte[] arr;
-
-        Chunk(byte[] x){
-            arr = x;
-        }
-
-        byte[] getChunk(){
-            return arr;
-        }
-    }
-
-    Chunk[] arr;
-    int size;
-    int head;
-    int tail;
-    int length;
-    int bytes;
-    int guard;
-
-    BoundedBuffer(int l0, int b0){
-        length=l0; bytes=b0;
-        arr=new Chunk[l0];
-        head=0;
-        tail=0;
-        size=0;
-        guard=1;
-    }
-
-    public synchronized void insertChunk(byte[] x){
-        while(size==length||guard==0)try{wait();}catch(InterruptedException e){}
-        guard--;
-        arr[head] = new Chunk(x);
-        size++;
-        System.out.println("Queued at head position " + head + " size is " + size );
-        head=(head+1)%length;
-        guard++;
-        notifyAll();
     }
 
     public synchronized byte[] removeChunk(){
-        while(size==0||guard==0)try{wait();}catch(InterruptedException e){}
-        guard--;
-        byte[] x = arr[tail].getChunk();
-        size--;
-        System.out.println("Dequed at tail position " + tail + " size is " + size );
-        tail=(tail+1)%length;
-        guard++;
-        notifyAll();
-        System.out.println("Notified");
-        return x;
-    }
-}
-
-
-
-
-/*
-class BoundedBuffer{
-    byte[][] arr;
-    int size;
-    int head;
-    int tail;
-    int length;
-    int bytes;
-    int guard;
-
-    BoundedBuffer(int l0, int b0){
-        length=l0; bytes=b0;
-        arr=new byte[length][bytes];
-        head=0;
-        tail=0;
-        size=0;
-        guard=1;
-    }
-
-    public synchronized void insertChunk(byte[] x){
-        while(size==length||guard==0)try{wait();}catch(InterruptedException e){}
-        guard--;
-        arr[head] = x;
-        size++;
-        System.out.println("Queued at head position " + head + " size is " + size );
-        head++;
-        head=head%length;
-        guard++;
-        notifyAll();
-    }
-
-    public synchronized byte[] removeChunk(){
-        while(size==0||guard==0)try{wait();}catch(InterruptedException e){}
-        guard--;
-        byte[] x = arr[tail];
-        size--;
-        System.out.println("Dequed at tail position " + tail + " size is " + size );
-        tail++;
-        tail=tail%length;
-        guard++;
-        notifyAll();
-        return x;
-    }
-}
-*/
-/*
-class BoundedBuffer { // buffer could know about stream size
-    private int nextIn, nextOut, size, occupied, ins, outs, sec;
-    private boolean dataAvailable, roomAvailable;
-    private byte[][] buffer;
-
-    // what role do ins/outs play?
-    BoundedBuffer(int n) {// n should be one second
-        nextIn = 0; nextOut = 0; size = n; occupied = 0; ins = 0; outs = 0;
-        dataAvailable = false;
-        roomAvailable = true;
-        sec=10;
-        buffer = new byte[sec][size];  
-    }
-
-    public synchronized void insertChunk(byte[] audioChunk) {
-        try {
-            while (occupied>=sec) {wait();}
-            buffer[nextIn]=audioChunk;
-            nextIn = (nextIn + 1) % sec;
-            occupied++;
-            ins++;
-            dataAvailable = true; 
-            //roomAvailable = (occupied < sec-1) ? true : false;
-            if(ins-outs){
-                roomAvailable=false;
+        try{
+            while(amountOccupied==0){
+                wait();
             }
-            notifyAll();
-        } catch (InterruptedException e) { }
-    }
-
-    public synchronized byte[] removeChunk() {
-        try {
-            while (occupied==0) {wait();}
-            byte[] audioChunk = buffer[nextOut];
-            nextOut = (nextOut + 1) % sec;
-            occupied--;
-            outs++;
-            if(occupied==0){
-                dataAvailable=false;
+            for(j=0; j < transfer.length; j++){
+                transfer[j]=bufferArray[(nextOut+j)%(chunkSize*10)];
             }
-            roomAvailable = true; 
+            nextOut+=transfer.length%(chunkSize*10);
+            amountOccupied--;
             notifyAll();
-            return audioChunk;
-        } catch (InterruptedException e) {
-            System.out.println("Returned null audio chunk from removeChunk()");
-            return null;}
+            return transfer;
+        } catch(InterruptedException e){
+            e.printStackTrace();
+            System.out.println("Remove chunk failed");
+            return null;
+        } catch(ArrayIndexOutOfBoundsException e){
+            e.printStackTrace();
+            System.out.println("j = "+j+", nextOut = "+nextOut+", transfer.length = "+transfer.length+", bufferArray.length = "+bufferArray.length);
+            return null;
+        }
     }
 }
 
-*/

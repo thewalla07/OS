@@ -61,17 +61,7 @@ class Player extends Panel implements Runnable {
             Thread pthread = new Thread(new Producer(oneSecond, s, b));
             Thread cthread = new Thread(new Consumer(oneSecond, line, b));
 
-            pthread.start();
-
-            
-            /*int bytesRead = 0;
-            while(bytesRead!=-1){
-                audioChunk1 = b.removeChunk();  
-
-                line.write(audioChunk1, 0, audioChunk1.length);
-            }*/
-            
-            
+            pthread.start();           
             cthread.start();
             
             pthread.join();
@@ -233,4 +223,3 @@ class BoundedBuffer{
         }
     }
 }
-

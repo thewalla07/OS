@@ -63,10 +63,10 @@ class Player extends Panel implements Runnable {
 
             pthread.start();           
             cthread.start();
-            
+
             pthread.join();
             cthread.join();
-
+            
             line.drain();
             line.stop();
             line.close();
@@ -109,6 +109,7 @@ class Consumer implements Runnable{
             audioChunk=b.removeChunk();
             line.write(audioChunk, 0, audioChunk.length);
         }
+        System.out.println("Bye from Consumer");
     }
 }
 
@@ -134,6 +135,7 @@ class Producer implements Runnable{
                 b.insertChunk(audioChunk);
             }
             b.done();
+            System.out.println("Bye from Producer");
         } catch(IOException e){
             e.printStackTrace();
             System.out.println("Producer interrupted");
@@ -152,7 +154,6 @@ public class StudentPlayerApplet extends Applet
     }
 }
 
-
 class BoundedBuffer{
     byte[] bufferArray;
     byte[] transfer;
@@ -163,14 +164,12 @@ class BoundedBuffer{
         bufferArray=new byte[10*chunkSize0];
         nextIn=0;
         nextOut=0;
-        amountOccupied=1;
+        amountOccupied=0;
         chunkSize=chunkSize0;
         isFull=true;
         isEmpty=true;
         isDone=false;
         transfer=new byte[chunkSize];
-        i=0;
-        j=0;
     }
 
     public void done(){
@@ -185,7 +184,7 @@ class BoundedBuffer{
             while(amountOccupied==10){
                 wait();
             }
-            for(i=0; i < input.length; i++){
+            for(int i=0; i < input.length; i++){
                 bufferArray[(nextIn+i)%(chunkSize*10)]=input[i];
             }
             nextIn+=input.length%(chunkSize*10);
@@ -196,7 +195,6 @@ class BoundedBuffer{
             System.out.println("Insert chunk failed");
         } catch(ArrayIndexOutOfBoundsException e){
             e.printStackTrace();
-            System.out.println("i = "+i+", nextIn = "+nextIn+", input.length = "+input.length+", bufferArray.length = "+bufferArray.length);
         }
     }
 
@@ -205,7 +203,7 @@ class BoundedBuffer{
             while(amountOccupied==0){
                 wait();
             }
-            for(j=0; j < transfer.length; j++){
+            for(int j=0; j < transfer.length; j++){
                 transfer[j]=bufferArray[(nextOut+j)%(chunkSize*10)];
             }
             nextOut+=transfer.length%(chunkSize*10);
@@ -218,7 +216,6 @@ class BoundedBuffer{
             return null;
         } catch(ArrayIndexOutOfBoundsException e){
             e.printStackTrace();
-            System.out.println("j = "+j+", nextOut = "+nextOut+", transfer.length = "+transfer.length+", bufferArray.length = "+bufferArray.length);
             return null;
         }
     }

@@ -34,8 +34,43 @@ class Player extends Panel implements Runnable {
         textfield.addActionListener(
             new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    textarea.append("You said: " + e.getActionCommand() + "\n");
-                    textfield.setText("");
+                    //textarea.append("You said: " + e.getActionCommand() + "\n");
+                    //textfield.setText("");
+					String input = e.getActionCommand();
+					switch(input){
+						case "x":
+							//exit song
+							break;
+							
+						case "q":
+							//raise volume
+							break;
+							
+						case "a":
+							//lower volume 
+							break;
+							
+						case "p":
+							//pause playback
+							break;
+							
+						case "r":
+							//resume playback
+							break;
+							
+						case "m":
+							//mute 
+							break;
+							
+						case "u":
+							//unmute
+							break;
+							
+						default:
+							//default - do nothing wrong input 
+							break;
+						
+					}
                 }
             }
         );

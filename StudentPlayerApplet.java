@@ -19,6 +19,8 @@ class Player extends Panel implements Runnable {
     private TextArea textarea;
     private Font font;
     private String filename;
+    private Thread pthread;
+    private Thread cthread;
 
     public Player(String filename){
 
@@ -36,6 +38,9 @@ class Player extends Panel implements Runnable {
                 public void actionPerformed(ActionEvent e) {
                     textarea.append("You said: " + e.getActionCommand() + "\n");
                     textfield.setText("");
+                    if(e.getActionCommand().equals("x")){
+                        cthread.Consumer.stopConsumer();
+                    }
                 }
             }
         );
@@ -104,6 +109,7 @@ class Consumer implements Runnable{
     int oneSecond, bytesRead;
     SourceDataLine line;
     BoundedBuffer b;
+    private volatile boolean stop = false;
 
     Consumer(int oneSecond0, SourceDataLine line0, BoundedBuffer b0){
         oneSecond=oneSecond0;
@@ -113,12 +119,20 @@ class Consumer implements Runnable{
         bytesRead=0;
     }
 
+    public void stopConsumer(){
+        stop=true;
+    }
+
     public void run(){
-        while(!b.isDone()){
-            audioChunk=b.removeChunk();
-            line.write(audioChunk, 0, audioChunk.length);
+        try{
+            while(!b.isDone()&&!stop){
+                audioChunk=b.removeChunk();
+                line.write(audioChunk, 0, audioChunk.length);
+            }
+            System.out.println("Bye from Consumer");
+        } catch(Exception e){
+            return;
         }
-        System.out.println("Bye from Consumer");
     }
 }
 

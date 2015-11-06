@@ -19,8 +19,21 @@ class Player extends Panel implements Runnable {
     private TextArea textarea;
     private Font font;
     private String filename;
+<<<<<<< HEAD
     private Thread pthread;
     private Thread cthread;
+=======
+	
+	//this block moved from run - defined them here so can use them in all methods
+		AudioInputStream s;
+        AudioFormat format;
+		DataLine.Info info;
+		int oneSecond;
+		BoundedBuffer b;
+		SourceDataLine line;
+		Thread pthread;
+        Thread cthread;
+>>>>>>> refs/remotes/origin/master
 
     public Player(String filename){
 
@@ -32,15 +45,68 @@ class Player extends Panel implements Runnable {
         setLayout(new BorderLayout());
         add(BorderLayout.SOUTH, textfield);
         add(BorderLayout.CENTER, textarea);
+		
+		
 
         textfield.addActionListener(
             new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
+<<<<<<< HEAD
                     textarea.append("You said: " + e.getActionCommand() + "\n");
                     textfield.setText("");
                     if(e.getActionCommand().equals("x")){
                         cthread.Consumer.stopConsumer();
                     }
+=======
+					String input = e.getActionCommand();
+					switch(input){
+						case "x":
+							try{
+								//System.out.println("attempted stop");
+								
+								pthread.sleep(5);
+								cthread.sleep(5);
+								
+								line.stop();
+								line.close();
+								
+								//System.out.println("reached end");
+							}
+							catch(InterruptedException v){
+								Thread.currentThread().interrupt();
+							}
+							break;
+							
+						case "q":
+							//raise volume
+							break;
+							
+						case "a":
+							//lower volume 
+							break;
+							
+						case "p":
+							//pause playback
+							break;
+							
+						case "r":
+							//resume playback
+							break;
+							
+						case "m":
+							//mute 
+							break;
+							
+						case "u":
+							//unmute
+							break;
+							
+						default:
+							//default - do nothing wrong input 
+							break;
+						
+					}
+>>>>>>> refs/remotes/origin/master
                 }
             }
         );
@@ -52,26 +118,25 @@ class Player extends Panel implements Runnable {
     public void run() {
 
         try {
-            AudioInputStream s = AudioSystem.getAudioInputStream(new File(filename));
-            AudioFormat format = s.getFormat();     
+            s = AudioSystem.getAudioInputStream(new File(filename));
+            format = s.getFormat();   
+		
             System.out.println("Audio format: " + format.toString());
-
-            DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+            info = new DataLine.Info(SourceDataLine.class, format);
             if (!AudioSystem.isLineSupported(info)) {
                 throw new UnsupportedAudioFileException();
             }
 
-            int oneSecond = (int) (format.getChannels() * format.getSampleRate() * 
-                       format.getSampleSizeInBits()/8 );
+            oneSecond = (int) (format.getChannels() * format.getSampleRate() * format.getSampleSizeInBits()/8 );
 
-            BoundedBuffer b = new BoundedBuffer(oneSecond);
+            b = new BoundedBuffer(oneSecond);
 
-            SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info);
+            line = (SourceDataLine) AudioSystem.getLine(info);
             line.open(format, oneSecond);
             line.start();
             
-            Thread pthread = new Thread(new Producer(oneSecond, s, b));
-            Thread cthread = new Thread(new Consumer(oneSecond, line, b));
+            pthread = new Thread(new Producer(oneSecond, s, b));
+			cthread = new Thread(new Consumer(oneSecond, line, b));
 
             pthread.start();           
             cthread.start();
@@ -80,6 +145,7 @@ class Player extends Panel implements Runnable {
             System.out.println("Pclosed");
 
             cthread.join();
+			System.out.println("Cclosed");
             
             line.drain();
             line.stop();
@@ -154,7 +220,7 @@ class Producer implements Runnable{
         try{
             while(bytesRead!=-1){
                 bytesRead=s.read(audioChunk);
-                System.out.println(bytesRead);
+                //System.out.println(bytesRead);
                 b.insertChunk(audioChunk);
             }
             b.done();

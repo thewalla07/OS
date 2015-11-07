@@ -19,10 +19,6 @@ class Player extends Panel implements Runnable {
     private TextArea textarea;
     private Font font;
     private String filename;
-<<<<<<< HEAD
-    private Thread pthread;
-    private Thread cthread;
-=======
 	
 	//this block moved from run - defined them here so can use them in all methods
 		AudioInputStream s;
@@ -33,7 +29,6 @@ class Player extends Panel implements Runnable {
 		SourceDataLine line;
 		Thread pthread;
         Thread cthread;
->>>>>>> refs/remotes/origin/master
 
     public Player(String filename){
 
@@ -51,13 +46,13 @@ class Player extends Panel implements Runnable {
         textfield.addActionListener(
             new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-<<<<<<< HEAD
+                    /*
                     textarea.append("You said: " + e.getActionCommand() + "\n");
                     textfield.setText("");
                     if(e.getActionCommand().equals("x")){
                         cthread.Consumer.stopConsumer();
                     }
-=======
+                    */
 					String input = e.getActionCommand();
 					switch(input){
 						case "x":
@@ -73,7 +68,8 @@ class Player extends Panel implements Runnable {
 								//System.out.println("reached end");
 							}
 							catch(InterruptedException v){
-								Thread.currentThread().interrupt();
+                                Thread.currentThread().interrupt();
+                                Thread.currentThread().interrupt();
 							}
 							break;
 							
@@ -106,7 +102,6 @@ class Player extends Panel implements Runnable {
 							break;
 						
 					}
->>>>>>> refs/remotes/origin/master
                 }
             }
         );

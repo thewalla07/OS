@@ -27,6 +27,8 @@ class Player extends Panel implements Runnable {
 		int oneSecond;
 		BoundedBuffer b;
 		SourceDataLine line;
+        Producer p;
+        Consumer c;
 		Thread pthread;
         Thread cthread;
 
@@ -46,23 +48,20 @@ class Player extends Panel implements Runnable {
         textfield.addActionListener(
             new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
+                    /*
+                    textarea.append("You said: " + e.getActionCommand() + "\n");
+                    textfield.setText("");
+                    if(e.getActionCommand().equals("x")){
+                        cthread.Consumer.stopConsumer();
+                    }
+                    */
 					String input = e.getActionCommand();
 					switch(input){
 						case "x":
-							try{
-								//System.out.println("attempted stop");
-								
-								pthread.sleep(5);
-								cthread.sleep(5);
-								
-								line.stop();
-								line.close();
-								
-								//System.out.println("reached end");
-							}
-							catch(InterruptedException v){
-								Thread.currentThread().interrupt();
-							}
+                                c.stopConsumer();
+                                b.stopBuffer();
+                                p.stopProducer();
+                                System.out.println("pressed x");                                
 							break;
 							
 						case "q":
@@ -122,10 +121,15 @@ class Player extends Panel implements Runnable {
             line.open(format, oneSecond);
             line.start();
             
-            pthread = new Thread(new Producer(oneSecond, s, b));
-			cthread = new Thread(new Consumer(oneSecond, line, b));
+            p = new Producer(oneSecond, s, b);
+            c = new Consumer(oneSecond, line, b);
 
-            pthread.start();           
+
+
+            pthread = new Thread(p);           
+            cthread = new Thread(c);
+
+            pthread.start();
             cthread.start();
 
             pthread.join();
@@ -162,6 +166,7 @@ class Consumer implements Runnable{
     int oneSecond, bytesRead;
     SourceDataLine line;
     BoundedBuffer b;
+    boolean done;
 
     Consumer(int oneSecond0, SourceDataLine line0, BoundedBuffer b0){
         oneSecond=oneSecond0;
@@ -169,14 +174,24 @@ class Consumer implements Runnable{
         b=b0;
         audioChunk= new byte[oneSecond];
         bytesRead=0;
+        done=false;
+    }
+
+    public void stopConsumer(){
+        done=true;
     }
 
     public void run(){
-        while(!b.isDone()){
-            audioChunk=b.removeChunk();
-            line.write(audioChunk, 0, audioChunk.length);
+        try{
+            while(!done){
+                audioChunk=b.removeChunk();
+                line.write(audioChunk, 0, audioChunk.length);
+            }
+            System.out.println("Bye from Consumer");
+        } catch(Exception e){
+            System.out.println("Consumer interrupted");
+            return;
         }
-        System.out.println("Bye from Consumer");
     }
 }
 
@@ -185,6 +200,7 @@ class Producer implements Runnable{
     int oneSecond, bytesRead;
     AudioInputStream s;
     BoundedBuffer b;
+    boolean done;
 
     Producer(int oneSecond0, AudioInputStream s0, BoundedBuffer b0){
         oneSecond=oneSecond0;
@@ -192,16 +208,20 @@ class Producer implements Runnable{
         b=b0;
         audioChunk= new byte[oneSecond];
         bytesRead=0;
+        done=false;
+    }
+
+    public void stopProducer(){
+        //allows the producer to stop execution
+        done=true;
     }
 
     public void run(){
         try{
-            while(bytesRead!=-1){
+            while(!done&&bytesRead!=-1){
                 bytesRead=s.read(audioChunk);
-                //System.out.println(bytesRead);
                 b.insertChunk(audioChunk);
             }
-            b.done();
             System.out.println("Bye from Producer");
         } catch(IOException e){
             e.printStackTrace();
@@ -214,7 +234,7 @@ class BoundedBuffer{
     byte[] bufferArray;
     byte[] transfer;
     int nextIn, nextOut, amountOccupied, chunkSize, i, j;
-    boolean isFull, isEmpty, isDone;
+    boolean isFull, isEmpty;
 
     BoundedBuffer(int chunkSize0){
         bufferArray=new byte[10*chunkSize0];
@@ -224,17 +244,14 @@ class BoundedBuffer{
         chunkSize=chunkSize0;
         isFull=true;
         isEmpty=true;
-        isDone=false;
         transfer=new byte[chunkSize];
     }
 
-    public synchronized void done(){
-        while(amountOccupied>0)try{wait();}catch(InterruptedException e){}
-        isDone=true;
+    public synchronized void stopBuffer(){
+        //set amountOccupied=0 to allow producer to wake from wait state
+        amountOccupied=0;
         notifyAll();
     }
-
-    public boolean isDone(){return isDone;}
 
     public synchronized void insertChunk(byte[] input){
         try{

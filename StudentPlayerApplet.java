@@ -19,16 +19,21 @@ class Player extends Panel implements Runnable {
     private TextArea textarea;
     private Font font;
     private String filename;
-	
-	//this block moved from run - defined them here so can use them in all methods
-		AudioInputStream s;
+    
+    //this block moved from run - defined them here so can use them in all methods
+        AudioInputStream s;
         AudioFormat format;
-		DataLine.Info info;
-		int oneSecond;
-		BoundedBuffer b;
-		SourceDataLine line;
-		Thread pthread;
+        DataLine.Info info;
+        int oneSecond;
+        BoundedBuffer b;
+        SourceDataLine line;
+        Producer p;
+        Consumer c;
+        Thread pthread;
         Thread cthread;
+        FloatControl volCtrl;
+        BooleanControl muteCtrl;
+        Float vol;
 
     public Player(String filename){
 
@@ -40,8 +45,8 @@ class Player extends Panel implements Runnable {
         setLayout(new BorderLayout());
         add(BorderLayout.SOUTH, textfield);
         add(BorderLayout.CENTER, textarea);
-		
-		
+        
+        
 
         textfield.addActionListener(
             new ActionListener() {
@@ -53,55 +58,54 @@ class Player extends Panel implements Runnable {
                         cthread.Consumer.stopConsumer();
                     }
                     */
-					String input = e.getActionCommand();
-					switch(input){
-						case "x":
-							try{
-								//System.out.println("attempted stop");
-								
-								pthread.sleep(5);
-								cthread.sleep(5);
-								
-								line.stop();
-								line.close();
-								
-								//System.out.println("reached end");
-							}
-							catch(InterruptedException v){
-                                Thread.currentThread().interrupt();
-                                Thread.currentThread().interrupt();
-							}
-							break;
-							
-						case "q":
-							//raise volume
-							break;
-							
-						case "a":
-							//lower volume 
-							break;
-							
-						case "p":
-							//pause playback
-							break;
-							
-						case "r":
-							//resume playback
-							break;
-							
-						case "m":
-							//mute 
-							break;
-							
-						case "u":
-							//unmute
-							break;
-							
-						default:
-							//default - do nothing wrong input 
-							break;
-						
-					}
+                    String input = e.getActionCommand();
+                    switch(input){
+                        case "x":
+                                c.stopConsumer();
+                                b.stopBuffer();
+                                p.stopProducer();
+                                System.out.println("pressed x");                                
+                            break;
+                            
+                        case "q":
+                            //raise volume
+                                vol=(vol+1.0F);
+                                if(vol>6.0206F) {vol=6.0206F;System.out.println("Vol++");}
+                                volCtrl.setValue(vol);
+                            break;
+                            
+                        case "a":
+                            //lower volume 
+                                vol=(vol-1.0F);
+                                if(vol<-80.0F) vol=-80.0F;
+                                volCtrl.setValue(vol);
+                            break;
+                            
+                        case "p":
+                                c.pauseConsumer();
+                            //pause playback
+                            break;
+                            
+                        case "r":
+                                c.resumeConsumer();
+                            //resume playback
+                            break;
+                            
+                        case "m":
+                            //mute 
+                                muteCtrl.setValue(true);
+                            break;
+                            
+                        case "u":
+                            //unmute
+                                muteCtrl.setValue(false);
+                            break;
+                            
+                        default:
+                            //default - do nothing wrong input 
+                            break;
+                        
+                    }
                 }
             }
         );
@@ -115,7 +119,7 @@ class Player extends Panel implements Runnable {
         try {
             s = AudioSystem.getAudioInputStream(new File(filename));
             format = s.getFormat();   
-		
+        
             System.out.println("Audio format: " + format.toString());
             info = new DataLine.Info(SourceDataLine.class, format);
             if (!AudioSystem.isLineSupported(info)) {
@@ -128,19 +132,33 @@ class Player extends Panel implements Runnable {
 
             line = (SourceDataLine) AudioSystem.getLine(info);
             line.open(format, oneSecond);
-            line.start();
-            
-            pthread = new Thread(new Producer(oneSecond, s, b));
-			cthread = new Thread(new Consumer(oneSecond, line, b));
 
-            pthread.start();           
+            muteCtrl = (BooleanControl) line.getControl(BooleanControl.Type.MUTE);
+            volCtrl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+
+            muteCtrl.setValue(false);
+            vol = volCtrl.getValue();
+            System.out.println(vol);
+
+            line.start();
+
+            
+            p = new Producer(oneSecond, s, b);
+            c = new Consumer(oneSecond, line, b);
+
+
+
+            pthread = new Thread(p);           
+            cthread = new Thread(c);
+
+            pthread.start();
             cthread.start();
 
             pthread.join();
             System.out.println("Pclosed");
 
             cthread.join();
-			System.out.println("Cclosed");
+            System.out.println("Cclosed");
             
             line.drain();
             line.stop();
@@ -170,7 +188,7 @@ class Consumer implements Runnable{
     int oneSecond, bytesRead;
     SourceDataLine line;
     BoundedBuffer b;
-    private volatile boolean stop = false;
+    boolean done, paused;
 
     Consumer(int oneSecond0, SourceDataLine line0, BoundedBuffer b0){
         oneSecond=oneSecond0;
@@ -178,20 +196,35 @@ class Consumer implements Runnable{
         b=b0;
         audioChunk= new byte[oneSecond];
         bytesRead=0;
+        done=false;
+        paused=false;
     }
 
     public void stopConsumer(){
-        stop=true;
+        done=true;
     }
+    
+    public void pauseConsumer(){
+        b.pauseBuffer();
+    }
+
+    public void resumeConsumer(){
+        b.resumeBuffer();
+    }
+
+
 
     public void run(){
         try{
-            while(!b.isDone()&&!stop){
+            while(!done){
                 audioChunk=b.removeChunk();
+                while(paused)try{wait();}catch(InterruptedException f){}
                 line.write(audioChunk, 0, audioChunk.length);
             }
             System.out.println("Bye from Consumer");
         } catch(Exception e){
+            System.out.println("Consumer interrupted");
+            e.printStackTrace();
             return;
         }
     }
@@ -202,6 +235,7 @@ class Producer implements Runnable{
     int oneSecond, bytesRead;
     AudioInputStream s;
     BoundedBuffer b;
+    boolean done;
 
     Producer(int oneSecond0, AudioInputStream s0, BoundedBuffer b0){
         oneSecond=oneSecond0;
@@ -209,16 +243,20 @@ class Producer implements Runnable{
         b=b0;
         audioChunk= new byte[oneSecond];
         bytesRead=0;
+        done=false;
+    }
+
+    public void stopProducer(){
+        //allows the producer to stop execution
+        done=true;
     }
 
     public void run(){
         try{
-            while(bytesRead!=-1){
+            while(!done&&bytesRead!=-1){
                 bytesRead=s.read(audioChunk);
-                //System.out.println(bytesRead);
                 b.insertChunk(audioChunk);
             }
-            b.done();
             System.out.println("Bye from Producer");
         } catch(IOException e){
             e.printStackTrace();
@@ -231,7 +269,7 @@ class BoundedBuffer{
     byte[] bufferArray;
     byte[] transfer;
     int nextIn, nextOut, amountOccupied, chunkSize, i, j;
-    boolean isFull, isEmpty, isDone;
+    boolean isFull, isEmpty, paused;
 
     BoundedBuffer(int chunkSize0){
         bufferArray=new byte[10*chunkSize0];
@@ -241,17 +279,27 @@ class BoundedBuffer{
         chunkSize=chunkSize0;
         isFull=true;
         isEmpty=true;
-        isDone=false;
         transfer=new byte[chunkSize];
+        paused=false;
     }
 
-    public synchronized void done(){
-        while(amountOccupied>0)try{wait();}catch(InterruptedException e){}
-        isDone=true;
+    public synchronized void stopBuffer(){
+        //set amountOccupied=0 to allow producer to wake from wait state
+        amountOccupied=0;
         notifyAll();
     }
-
-    public boolean isDone(){return isDone;}
+    
+    public synchronized void pauseBuffer(){
+        //set amountOccupied=0 to allow producer to wake from wait state
+        paused=true;
+        notifyAll();
+    }
+    
+    public synchronized void resumeBuffer(){
+        //set amountOccupied=0 to allow producer to wake from wait state
+        paused=false;
+        notifyAll();
+    }
 
     public synchronized void insertChunk(byte[] input){
         try{
@@ -274,7 +322,7 @@ class BoundedBuffer{
 
     public synchronized byte[] removeChunk(){
         try{
-            while(amountOccupied==0){
+            while(amountOccupied==0||paused){
                 wait();
             }
             for(int j=0; j < transfer.length; j++){

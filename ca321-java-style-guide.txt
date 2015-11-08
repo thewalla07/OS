@@ -1,0 +1,51 @@
+ca321 java style guide:
+
+    Darragh insists:
+
+        line length < 80
+
+
+    observations made from reading Darragh's Java code:
+
+        4 spaces for indentation
+
+
+        space between methods closing parenthesis and opening brace:
+
+            this: void increment() {
+
+            not:  void increment(){
+
+
+        space either side of operators:
+
+            this: int i = 1;
+
+            not:  int i=1;
+
+
+        multiline style comments at all times (space separated):
+
+            this: /* comment */
+
+            not:  // comment
+
+            not:  /*comment*/
+
+
+        one blank line following method or class declaration;
+
+            this: class Producer {
+
+                      private int x;
+
+            not:  class Producer {
+                      private int x;
+
+            this: void increment() {
+
+                      i++;
+
+            not:  void increment() {
+                      i++;
+

@@ -31,6 +31,9 @@ class Player extends Panel implements Runnable {
         Consumer c;
         Thread pthread;
         Thread cthread;
+        FloatControl volCtrl;
+        BooleanControl muteCtrl;
+        Float vol;
 
     public Player(String filename){
 
@@ -66,10 +69,16 @@ class Player extends Panel implements Runnable {
                             
                         case "q":
                             //raise volume
+                                vol=(vol+1.0F);
+                                if(vol>6.0206F) {vol=6.0206F;System.out.println("Vol++");}
+                                volCtrl.setValue(vol);
                             break;
                             
                         case "a":
                             //lower volume 
+                                vol=(vol-1.0F);
+                                if(vol<-80.0F) vol=-80.0F;
+                                volCtrl.setValue(vol);
                             break;
                             
                         case "p":
@@ -84,10 +93,12 @@ class Player extends Panel implements Runnable {
                             
                         case "m":
                             //mute 
+                                muteCtrl.setValue(true);
                             break;
                             
                         case "u":
                             //unmute
+                                muteCtrl.setValue(false);
                             break;
                             
                         default:
@@ -121,7 +132,16 @@ class Player extends Panel implements Runnable {
 
             line = (SourceDataLine) AudioSystem.getLine(info);
             line.open(format, oneSecond);
+
+            muteCtrl = (BooleanControl) line.getControl(BooleanControl.Type.MUTE);
+            volCtrl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+
+            muteCtrl.setValue(false);
+            vol = volCtrl.getValue();
+            System.out.println(vol);
+
             line.start();
+
             
             p = new Producer(oneSecond, s, b);
             c = new Consumer(oneSecond, line, b);

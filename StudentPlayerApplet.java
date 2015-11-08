@@ -63,14 +63,13 @@ class Player extends Panel implements Runnable {
                         case "x":
                                 c.stopConsumer();
                                 b.stopBuffer();
-                                p.stopProducer();
-                                System.out.println("pressed x");                                
+                                p.stopProducer();                               
                             break;
                             
                         case "q":
                             //raise volume
                                 vol=(vol+1.0F);
-                                if(vol>6.0206F) {vol=6.0206F;System.out.println("Vol++");}
+                                if(vol>6.0206F) vol=6.0206F;
                                 volCtrl.setValue(vol);
                             break;
                             

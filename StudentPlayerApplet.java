@@ -19,22 +19,22 @@ class Player extends Panel implements Runnable {
     private TextArea textarea;
     private Font font;
     private String filename;
-    
+
     // this block moved from run
     // defined them here so can use them in all methods
-    AudioInputStream s;
-    AudioFormat format;
-    DataLine.Info info;
-    int oneSecond;
-    BoundedBuffer b;
-    SourceDataLine line;
-    Producer p;
-    Consumer c;
-    Thread pthread;
-    Thread cthread;
-    FloatControl volCtrl;
-    BooleanControl muteCtrl;
-    Float vol;
+    private AudioInputStream s;
+    private AudioFormat format;
+    private DataLine.Info info;
+    private int oneSecond;
+    private BoundedBuffer b;
+    private SourceDataLine line;
+    private Producer p;
+    private Consumer c;
+    private Thread pthread;
+    private Thread cthread;
+    private FloatControl volCtrl;
+    private BooleanControl muteCtrl;
+    private Float vol;
 
     public Player(String filename) {
 
@@ -60,7 +60,7 @@ class Player extends Panel implements Runnable {
                             b.stopBuffer();
                             p.stopProducer();                               
                             break;
-                            
+
                         case "q":
                             // raise volume
                             if (vol < 5.0206F) {
@@ -68,7 +68,7 @@ class Player extends Panel implements Runnable {
                             }
                             volCtrl.setValue(vol);
                             break;
-                            
+
                         case "a":
                             // lower volume 
                             if ( vol > -79.0F) {
@@ -76,27 +76,27 @@ class Player extends Panel implements Runnable {
                             }
                             volCtrl.setValue(vol);
                             break;
-                            
+
                         case "p":
                             // pause playback
                             c.pauseConsumer();
                             break;
-                            
+
                         case "r":
                             // resume playback
                             c.resumeConsumer();
                             break;
-                            
+
                         case "m":
                             // mute 
                             muteCtrl.setValue(true);
                             break;
-                            
+
                         case "u":
                             // unmute
                             muteCtrl.setValue(false);
                             break;
-                            
+
                         default:
                             // default - do nothing wrong input 
                             break;
@@ -151,7 +151,7 @@ class Player extends Panel implements Runnable {
 
             pthread.join();
             cthread.join();
-            
+
             line.drain();
             line.stop();
             line.close();
@@ -181,11 +181,11 @@ class Player extends Panel implements Runnable {
 
 class Consumer implements Runnable {
 
-    byte[] audioChunk;
-    int oneSecond, bytesRead;
-    SourceDataLine line;
-    BoundedBuffer b;
-    boolean done, paused;
+    private byte[] audioChunk;
+    private int oneSecond, bytesRead;
+    private SourceDataLine line;
+    private BoundedBuffer b;
+    private boolean done, paused;
 
     Consumer(int oneSecond0, SourceDataLine line0, BoundedBuffer b0) {
 
@@ -210,9 +210,8 @@ class Consumer implements Runnable {
         b.resumeBuffer();
     }
 
+    public void run() {
 
-
-    public void run() { 
         try {
 
             while (!done) {
@@ -234,11 +233,11 @@ class Consumer implements Runnable {
 
 class Producer implements Runnable {
 
-    byte[] audioChunk;
-    int oneSecond, bytesRead;
-    AudioInputStream s;
-    BoundedBuffer b;
-    boolean done;
+    private byte[] audioChunk;
+    private int oneSecond, bytesRead;
+    private AudioInputStream s;
+    private BoundedBuffer b;
+    private boolean done;
 
     Producer(int oneSecond0, AudioInputStream s0, BoundedBuffer b0) {
         oneSecond = oneSecond0;
@@ -272,10 +271,10 @@ class Producer implements Runnable {
 
 class BoundedBuffer {
 
-    byte[] bufferArray;
-    byte[] transfer;
-    int nextIn, nextOut, amountOccupied, chunkSize, i, j;
-    boolean isFull, isEmpty, paused;
+    private byte[] bufferArray;
+    private byte[] transfer;
+    private int nextIn, nextOut, amountOccupied, chunkSize, i, j;
+    private boolean isFull, isEmpty, paused;
 
     BoundedBuffer(int chunkSize0) {
         bufferArray = new byte[10 * chunkSize0];
@@ -294,13 +293,13 @@ class BoundedBuffer {
         amountOccupied = 0;
         notifyAll();
     }
-    
+
     public synchronized void pauseBuffer() {
         // set amountOccupied=0 to allow producer to wake from wait state
         paused = true;
         notifyAll();
     }
-    
+
     public synchronized void resumeBuffer() {
         // set amountOccupied=0 to allow producer to wake from wait state
         paused = false;

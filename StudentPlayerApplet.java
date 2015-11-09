@@ -98,7 +98,6 @@ class Player extends Panel implements Runnable {
                         default:
                             // default - do nothing wrong input 
                             break;
-                        
                     }
                 }
             }
@@ -169,7 +168,7 @@ class Player extends Panel implements Runnable {
             System.out.println("Player initialisation failed");
             e.printStackTrace();
             System.exit(1);
-        } catch(InterruptedException e){
+        } catch(InterruptedException e) {
 
             System.out.println("Interrupted Exception");
             e.printStackTrace();
@@ -248,7 +247,7 @@ class Producer implements Runnable {
         done = false;
     }
 
-    public void stopProducer(){
+    public void stopProducer() {
         // allows the producer to stop execution
         done = true;
     }
@@ -275,7 +274,7 @@ class BoundedBuffer {
     int nextIn, nextOut, amountOccupied, chunkSize, i, j;
     boolean isFull, isEmpty, paused;
 
-    BoundedBuffer(int chunkSize0){
+    BoundedBuffer(int chunkSize0) {
         bufferArray = new byte[10 * chunkSize0];
         nextIn = 0;
         nextOut = 0;
@@ -287,19 +286,19 @@ class BoundedBuffer {
         paused = false;
     }
 
-    public synchronized void stopBuffer(){
+    public synchronized void stopBuffer() {
         // set amountOccupied=0 to allow producer to wake from wait state
         amountOccupied = 0;
         notifyAll();
     }
     
-    public synchronized void pauseBuffer(){
+    public synchronized void pauseBuffer() {
         // set amountOccupied=0 to allow producer to wake from wait state
         paused = true;
         notifyAll();
     }
     
-    public synchronized void resumeBuffer(){
+    public synchronized void resumeBuffer() {
         // set amountOccupied=0 to allow producer to wake from wait state
         paused = false;
         notifyAll();
@@ -317,10 +316,10 @@ class BoundedBuffer {
             nextIn += input.length % (chunkSize * 10);
             amountOccupied++;
             notifyAll();
-        } catch(InterruptedException e){
+        } catch(InterruptedException e) {
             e.printStackTrace();
             System.out.println("Insert chunk failed");
-        } catch(ArrayIndexOutOfBoundsException e){
+        } catch(ArrayIndexOutOfBoundsException e) {
             e.printStackTrace();
         }
     }
@@ -331,7 +330,7 @@ class BoundedBuffer {
             while (amountOccupied == 0 || paused) {
                 wait();
             }
-            for(int j = 0; j < transfer.length; j++){
+            for(int j = 0; j < transfer.length; j++) {
                 transfer[j] = bufferArray[(nextOut + j) % (chunkSize * 10)];
             }
             nextOut += transfer.length % (chunkSize * 10);

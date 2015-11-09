@@ -42,7 +42,7 @@ class Player extends Panel implements Runnable {
         textfield = new TextField();
         textarea = new TextArea();
         textarea.setFont(font);
-        textfield.setFont(font);
+        textfield.setFont(font);    
         setLayout(new BorderLayout());
         add(BorderLayout.SOUTH, textfield);
         add(BorderLayout.CENTER, textarea);
@@ -56,6 +56,7 @@ class Player extends Panel implements Runnable {
                     switch(input) {
 
                         case "x":
+                            textarea.append("Command received: Halt playback \n");   
                             c.stopConsumer();
                             b.stopBuffer();
                             p.stopProducer();                               
@@ -63,6 +64,7 @@ class Player extends Panel implements Runnable {
 
                         case "q":
                             // raise volume
+                            textarea.append("Command received: Increase Volume \n");
                             if (vol < 5.0206F) {
                                 vol = (vol + 1.0F);
                             }
@@ -71,6 +73,7 @@ class Player extends Panel implements Runnable {
 
                         case "a":
                             // lower volume 
+                            textarea.append("Command received: Decrease Volume \n");
                             if ( vol > -79.0F) {
                                 vol = (vol - 1.0F);
                             }
@@ -79,21 +82,25 @@ class Player extends Panel implements Runnable {
 
                         case "p":
                             // pause playback
+                            textarea.append("Command received: Pause Playback \n");
                             c.pauseConsumer();
                             break;
 
                         case "r":
                             // resume playback
+                             textarea.append("Command received: Resume Playback \n");
                             c.resumeConsumer();
                             break;
 
                         case "m":
                             // mute 
+                            textarea.append("Command received: Mute Audio \n");
                             muteCtrl.setValue(true);
                             break;
 
                         case "u":
                             // unmute
+                            textarea.append("Command received: Unmute Audio \n");
                             muteCtrl.setValue(false);
                             break;
 
@@ -114,8 +121,10 @@ class Player extends Panel implements Runnable {
         try {
             s = AudioSystem.getAudioInputStream(new File(filename));
             format = s.getFormat();   
-        
-            System.out.println("Audio format: " + format.toString());
+            textarea.append("Audio file: " + filename + "\n" );
+            textarea.append("Audio format: " + format.toString() + "\n" );
+            int durationInSeconds = (int) ((s.getFrameLength()) / format.getFrameRate());  
+            textarea.append("Audio file duration: " + durationInSeconds + " seconds \n" );
             info = new DataLine.Info(SourceDataLine.class, format);
             if (!AudioSystem.isLineSupported(info)) {
                 throw new UnsupportedAudioFileException();
@@ -150,10 +159,13 @@ class Player extends Panel implements Runnable {
             cthread.start();
 
             pthread.join();
+            textarea.append("Producer says: goodbye \n");
             cthread.join();
+            textarea.append("Consumer says: goodbye \n");
 
             line.drain();
             line.stop();
+            textarea.append("Main says: playback complete \n");
             line.close();
         } catch (UnsupportedAudioFileException e ) {
 

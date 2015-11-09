@@ -63,15 +63,17 @@ class Player extends Panel implements Runnable {
                             
                         case "q":
                             // raise volume
-                            vol = (vol + 1.0F);
-                            if (vol > 6.0206F) vol = 6.0206F;
+                            if (vol < 5.0206F) {
+                                vol = (vol + 1.0F);
+                            }
                             volCtrl.setValue(vol);
                             break;
                             
                         case "a":
                             // lower volume 
-                            vol = (vol - 1.0F);
-                            if( vol < -80.0F) vol = -80.0F;
+                            if ( vol > -79.0F) {
+                                vol = (vol - 1.0F);
+                            }
                             volCtrl.setValue(vol);
                             break;
                             
@@ -168,7 +170,7 @@ class Player extends Panel implements Runnable {
             System.out.println("Player initialisation failed");
             e.printStackTrace();
             System.exit(1);
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
 
             System.out.println("Interrupted Exception");
             e.printStackTrace();
@@ -222,7 +224,7 @@ class Consumer implements Runnable {
             }
 
             System.out.println("Bye from Consumer");
-        } catch(Exception e) {
+        } catch (Exception e) {
             System.out.println("Consumer interrupted");
             e.printStackTrace();
             return;
@@ -261,7 +263,7 @@ class Producer implements Runnable {
             }
 
             System.out.println("Bye from Producer");
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             System.out.println("Producer interrupted");
         }
@@ -269,6 +271,7 @@ class Producer implements Runnable {
 }
 
 class BoundedBuffer {
+
     byte[] bufferArray;
     byte[] transfer;
     int nextIn, nextOut, amountOccupied, chunkSize, i, j;
@@ -307,10 +310,10 @@ class BoundedBuffer {
     public synchronized void insertChunk(byte[] input) {
 
         try {
-            while(amountOccupied == 10) {
+            while (amountOccupied == 10) {
                 wait();
             }
-            for(int i = 0; i < input.length; i++) {
+            for (int i = 0; i < input.length; i++) {
                 bufferArray[(nextIn + i) % (chunkSize * 10)] = input[i];
             }
             nextIn += input.length % (chunkSize * 10);
@@ -330,18 +333,18 @@ class BoundedBuffer {
             while (amountOccupied == 0 || paused) {
                 wait();
             }
-            for(int j = 0; j < transfer.length; j++) {
+            for (int j = 0; j < transfer.length; j++) {
                 transfer[j] = bufferArray[(nextOut + j) % (chunkSize * 10)];
             }
             nextOut += transfer.length % (chunkSize * 10);
             amountOccupied--;
             notifyAll();
             return transfer;
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             e.printStackTrace();
             System.out.println("Remove chunk failed");
             return null;
-        } catch(ArrayIndexOutOfBoundsException e) {
+        } catch (ArrayIndexOutOfBoundsException e) {
             e.printStackTrace();
             return null;
         }

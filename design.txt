@@ -1,0 +1,10 @@
+/*
+ * Jacob O'Keeffe 13356691
+ * Ryan Earley 13301871
+ * Sean Quinn 13330146
+ * Michael Wall 13522003
+ */
+
+Our solution employs a producer-consumer design as specified. Apart from the StudentPlayerApplet and the Panel classes, which form the GUI elements, we implemented three classes; a Producer class, a Consumer class and a BoundedBuffer class.
+
+The BoundedBuffer buffer class

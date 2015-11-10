@@ -1,3 +1,10 @@
+/*
+ * Jacob O'Keeffe 13356691
+ * Ryan Earley 13301871
+ * Sean Quinn 13330146
+ * Michael Wall 13522003
+ */
+
 import javax.sound.sampled.*;
 import java.applet.Applet;
 import java.awt.*;

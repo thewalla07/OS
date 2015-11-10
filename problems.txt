@@ -1,0 +1,10 @@
+/*
+ * Jacob O'Keeffe 13356691
+ * Ryan Earley 13301871
+ * Sean Quinn 13330146
+ * Michael Wall 13522003
+ */
+
+1. All the typed commands, apart from resume, experience a slight delay because because line.write() blocks until it has fully written the audio. This causes the delay when the other commands are entered.
+
+2. The TextField does not clear after a command is entered. We tried using textfield.setText("") but it did not work. If a space is used i.e. textfield.setText(" "), it works, but you are required to delete the space before entering another command.

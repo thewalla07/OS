@@ -56,7 +56,8 @@ class Player extends Panel implements Runnable {
 
                         case "x":
                             /* stop playback */
-                            textarea.append("Command received: Halt playback \n"); 
+                            textarea.append("Command received: "+
+                                            "Halt playback \n"); 
                             textfield.setText(""); 
                             c.stopConsumer();
                             b.stopBuffer();
@@ -65,7 +66,8 @@ class Player extends Panel implements Runnable {
 
                         case "q":
                             /* raise volume */
-                            textarea.append("Command received: Increase Volume \n");
+                            textarea.append("Command received: "+
+                                            "Increase Volume \n");
                             textfield.setText("");
                             volCurrent=(volCurrent+5.0F);
                             if(volCurrent>6.0206F) volCurrent=6.0206F;
@@ -74,7 +76,8 @@ class Player extends Panel implements Runnable {
 
                         case "a":
                             /* lower volume */
-                            textarea.append("Command received: Decrease Volume \n");
+                            textarea.append("Command received: "+
+                                            "Decrease Volume \n");
                             textfield.setText("");
                             volCurrent=(volCurrent-5.0F);
                             if(volCurrent<-80.0F) volCurrent=-80.0F;
@@ -88,7 +91,8 @@ class Player extends Panel implements Runnable {
                                 its current buffer to the audio
                                 device before it can respond to
                                 the method call */
-                            textarea.append("Command received: Pause Playback \n");
+                            textarea.append("Command received: "+
+                                            "Pause Playback \n");
                             textfield.setText("");
                             c.pauseConsumer();
                             break;
@@ -98,21 +102,24 @@ class Player extends Panel implements Runnable {
                             /* resuming playback is near 
                                 instant in contrast to the
                                 pausing function */
-                             textarea.append("Command received: Resume Playback \n");
+                             textarea.append("Command received: "+
+                                            "Resume Playback \n");
                              textfield.setText("");
                             c.resumeConsumer();
                             break;
 
                         case "m":
                             /* mute */
-                            textarea.append("Command received: Mute Audio \n");
+                            textarea.append("Command received: "+
+                                            "Mute Audio \n");
                             textfield.setText("");
                             muteCtrl.setValue(true);
                             break;
 
                         case "u":
                             /* unmute */
-                            textarea.append("Command received: Unmute Audio \n");
+                            textarea.append("Command received: "+
+                                            "Unmute Audio \n");
                             textfield.setText("");
                             muteCtrl.setValue(false);
                             break;

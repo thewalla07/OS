@@ -58,7 +58,7 @@ class Player extends Panel implements Runnable {
                             textfield.setText(""); 
                             c.stopConsumer();
                             b.stopBuffer();
-                            p.stopProducer();                               
+                            p.stopProducer();
                             break;
 
                         case "q": // raise volume

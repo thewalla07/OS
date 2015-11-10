@@ -4,8 +4,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 
-public class StudentPlayerApplet extends Applet
-{
+public class StudentPlayerApplet extends Applet {
+
     private static final long serialVersionUID = 1L;
     public void init() {
         setLayout(new BorderLayout());
@@ -14,6 +14,7 @@ public class StudentPlayerApplet extends Applet
 }
 
 class Player extends Panel implements Runnable {
+
     private static final long serialVersionUID = 1L;
     private TextField textfield;
     private TextArea textarea;
@@ -48,6 +49,7 @@ class Player extends Panel implements Runnable {
         add(BorderLayout.CENTER, textarea);
         
         textfield.addActionListener(
+   
             new ActionListener() {
 
                 public void actionPerformed(ActionEvent e) {
@@ -56,7 +58,8 @@ class Player extends Panel implements Runnable {
                     switch(input) {
 
                         case "x":
-                            textarea.append("Command received: Halt playback \n");   
+                            textarea.append("Command received: Halt playback \n"); 
+                            textfield.setText(""); 
                             c.stopConsumer();
                             b.stopBuffer();
                             p.stopProducer();                               
@@ -65,6 +68,7 @@ class Player extends Panel implements Runnable {
                         case "q":
                             // raise volume
                             textarea.append("Command received: Increase Volume \n");
+                            textfield.setText("");
                             vol=(vol+5.0F);
                             if(vol>6.0206F) vol=6.0206F;
                             volCtrl.setValue(vol);
@@ -72,7 +76,8 @@ class Player extends Panel implements Runnable {
 
                         case "a":
                             // lower volume 
-                            textarea.append("Command received: Decrease Volume \n");                       
+                            textarea.append("Command received: Decrease Volume \n");
+                            textfield.setText("");
                             vol=(vol-5.0F);
                             if(vol<-80.0F) vol=-80.0F;
                             volCtrl.setValue(vol);
@@ -81,24 +86,28 @@ class Player extends Panel implements Runnable {
                         case "p":
                             // pause playback
                             textarea.append("Command received: Pause Playback \n");
+                            textfield.setText("");
                             c.pauseConsumer();
                             break;
 
                         case "r":
                             // resume playback
                              textarea.append("Command received: Resume Playback \n");
+                             textfield.setText("");
                             c.resumeConsumer();
                             break;
 
                         case "m":
                             // mute 
                             textarea.append("Command received: Mute Audio \n");
+                            textfield.setText("");
                             muteCtrl.setValue(true);
                             break;
 
                         case "u":
                             // unmute
                             textarea.append("Command received: Unmute Audio \n");
+                            textfield.setText("");
                             muteCtrl.setValue(false);
                             break;
 
@@ -117,6 +126,7 @@ class Player extends Panel implements Runnable {
     public void run() {
 
         try {
+   
             s = AudioSystem.getAudioInputStream(new File(filename));
             format = s.getFormat();   
             textarea.append("Audio file: " + filename + "\n" );
@@ -125,6 +135,7 @@ class Player extends Panel implements Runnable {
             textarea.append("Audio file duration: " + durationInSeconds + " seconds \n" );
             info = new DataLine.Info(SourceDataLine.class, format);
             if (!AudioSystem.isLineSupported(info)) {
+   
                 throw new UnsupportedAudioFileException();
             }
 
@@ -157,12 +168,12 @@ class Player extends Panel implements Runnable {
 
             pthread.join();
             cthread.join();
-            textarea.append("Consumer says: goodbye \n");
 
             line.drain();
             line.stop();
-            textarea.append("Main says: playback complete \n");
             line.close();
+
+            textarea.append("Main says: playback complete \n");
         } catch (UnsupportedAudioFileException e ) {
 
             System.out.println("Player initialisation failed");
@@ -209,14 +220,17 @@ class Consumer implements Runnable {
     }
 
     public void stopConsumer() {
+
         done = true;
     }
     
     public void pauseConsumer() {
+
         b.pauseBuffer();
     }
 
     public void resumeConsumer() {
+
         b.resumeBuffer();
     }
 
@@ -225,15 +239,18 @@ class Consumer implements Runnable {
         try {
 
             while (!done) {
+
                 audioChunk = b.removeChunk();
                 if(audioChunk == null) break;
                 while (paused) {
+
                     try {wait();} catch (InterruptedException f) {}
                 }
                 line.write(audioChunk, 0, audioChunk.length);
             }
             textarea.append("Consumer says: goodbye \n");
         } catch (Exception e) {
+
             System.out.println("Consumer interrupted");
             e.printStackTrace();
             return;
@@ -268,13 +285,16 @@ class Producer implements Runnable {
     public void run() {
 
         try {
+
             while (!done && bytesRead != -1) {
+
                 bytesRead = s.read(audioChunk);
                 b.insertChunk(audioChunk);
             }
             textarea.append("Producer says: goodbye \n");
             b.notifyCompletion();
         } catch (IOException e) {
+
             e.printStackTrace();
             System.out.println("Producer interrupted");
         }
@@ -289,6 +309,7 @@ class BoundedBuffer {
     private boolean isFull, isEmpty, paused, isReceiving;
 
     BoundedBuffer(int chunkSize0) {
+
         bufferArray = new byte[10 * chunkSize0];
         nextIn = 0;
         nextOut = 0;
@@ -320,37 +341,43 @@ class BoundedBuffer {
     }
 
     public synchronized void notifyCompletion() {
+        //notified that the buffer is no longer receiving data from producer
         isReceiving = false;
     }
 
     public synchronized void insertChunk(byte[] input) {
 
         try {
-            while (amountOccupied == 10) {
-                wait();
-            }
+
+            while (amountOccupied == 10) {wait();}
             for (int i = 0; i < input.length; i++) {
+
                 bufferArray[(nextIn + i) % (chunkSize * 10)] = input[i];
             }
             nextIn += input.length % (chunkSize * 10);
             amountOccupied++;
             notifyAll();
         } catch(InterruptedException e) {
+
             e.printStackTrace();
             System.out.println("Insert chunk failed");
         } catch(ArrayIndexOutOfBoundsException e) {
+
             e.printStackTrace();
         }
     }
 
     public synchronized byte[] removeChunk() {
 
-        try{
+        try {
+
             if(amountOccupied == 0 && isReceiving == false) return null;
             while (amountOccupied == 0 || paused) {
+
                 wait();
             }
             for (int j = 0; j < transfer.length; j++) {
+
                 transfer[j] = bufferArray[(nextOut + j) % (chunkSize * 10)];
             }
             nextOut += transfer.length % (chunkSize * 10);
@@ -358,10 +385,12 @@ class BoundedBuffer {
             notifyAll();
             return transfer;
         } catch (InterruptedException e) {
+
             e.printStackTrace();
             System.out.println("Remove chunk failed");
             return null;
         } catch (ArrayIndexOutOfBoundsException e) {
+            
             e.printStackTrace();
             return null;
         }

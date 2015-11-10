@@ -52,10 +52,9 @@ class Player extends Panel implements Runnable {
 
                     String input = e.getActionCommand();
                     switch(input) {
-
                         case "x": // stop playback
                             textarea.append(
-                                "Command received: Halt playback \n"); 
+                                "Command received: Halt playback \n");
                             textfield.setText(""); 
                             c.stopConsumer();
                             b.stopBuffer();

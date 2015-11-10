@@ -65,18 +65,16 @@ class Player extends Panel implements Runnable {
                         case "q":
                             // raise volume
                             textarea.append("Command received: Increase Volume \n");
-                            if (vol < 5.0206F) {
-                                vol = (vol + 1.0F);
-                            }
+                            vol=(vol+5.0F);
+                            if(vol>6.0206F) vol=6.0206F;
                             volCtrl.setValue(vol);
                             break;
 
                         case "a":
                             // lower volume 
-                            textarea.append("Command received: Decrease Volume \n");
-                            if ( vol > -79.0F) {
-                                vol = (vol - 1.0F);
-                            }
+                            textarea.append("Command received: Decrease Volume \n");                       
+                            vol=(vol-5.0F);
+                            if(vol<-80.0F) vol=-80.0F;
                             volCtrl.setValue(vol);
                             break;
 
@@ -145,12 +143,11 @@ class Player extends Panel implements Runnable {
 
             muteCtrl.setValue(false);
             vol = volCtrl.getValue();
-            System.out.println(vol);
 
             line.start();
 
-            p = new Producer(oneSecond, s, b);
-            c = new Consumer(oneSecond, line, b);
+            p = new Producer(oneSecond, s, b, textarea);
+            c = new Consumer(oneSecond, line, b, textarea);
 
             pthread = new Thread(p);           
             cthread = new Thread(c);
@@ -159,7 +156,6 @@ class Player extends Panel implements Runnable {
             cthread.start();
 
             pthread.join();
-            textarea.append("Producer says: goodbye \n");
             cthread.join();
             textarea.append("Consumer says: goodbye \n");
 
@@ -198,8 +194,9 @@ class Consumer implements Runnable {
     private SourceDataLine line;
     private BoundedBuffer b;
     private boolean done, paused;
+    private TextArea textarea;
 
-    Consumer(int oneSecond0, SourceDataLine line0, BoundedBuffer b0) {
+    Consumer(int oneSecond0, SourceDataLine line0, BoundedBuffer b0, TextArea t0) {
 
         oneSecond = oneSecond0;
         line = line0;
@@ -208,6 +205,7 @@ class Consumer implements Runnable {
         bytesRead = 0;
         done = false;
         paused = false;
+        textarea = t0;
     }
 
     public void stopConsumer() {
@@ -226,15 +224,14 @@ class Consumer implements Runnable {
 
         try {
 
-            while (!done) {
+            while (!done || b.isReceiving()) {
                 audioChunk = b.removeChunk();
                 while (paused) {
                     try {wait();} catch (InterruptedException f) {}
                 }
                 line.write(audioChunk, 0, audioChunk.length);
             }
-
-            System.out.println("Bye from Consumer");
+            textarea.append("Consumer says: goodbye \n");
         } catch (Exception e) {
             System.out.println("Consumer interrupted");
             e.printStackTrace();
@@ -250,14 +247,16 @@ class Producer implements Runnable {
     private AudioInputStream s;
     private BoundedBuffer b;
     private boolean done;
+    private TextArea textarea;
 
-    Producer(int oneSecond0, AudioInputStream s0, BoundedBuffer b0) {
+    Producer(int oneSecond0, AudioInputStream s0, BoundedBuffer b0, TextArea t0) {
         oneSecond = oneSecond0;
         s = s0;
         b = b0;
         audioChunk = new byte[oneSecond];
         bytesRead = 0;
         done = false;
+        textarea = t0;
     }
 
     public void stopProducer() {
@@ -272,8 +271,8 @@ class Producer implements Runnable {
                 bytesRead = s.read(audioChunk);
                 b.insertChunk(audioChunk);
             }
-
-            System.out.println("Bye from Producer");
+            textarea.append("Producer says: goodbye \n");
+            b.notifyCompletion();
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("Producer interrupted");
@@ -286,7 +285,7 @@ class BoundedBuffer {
     private byte[] bufferArray;
     private byte[] transfer;
     private int nextIn, nextOut, amountOccupied, chunkSize, i, j;
-    private boolean isFull, isEmpty, paused;
+    private boolean isFull, isEmpty, paused, isReceiving;
 
     BoundedBuffer(int chunkSize0) {
         bufferArray = new byte[10 * chunkSize0];
@@ -298,6 +297,7 @@ class BoundedBuffer {
         isEmpty = true;
         transfer = new byte[chunkSize];
         paused = false;
+        isReceiving = true;
     }
 
     public synchronized void stopBuffer() {
@@ -316,6 +316,16 @@ class BoundedBuffer {
         // set amountOccupied=0 to allow producer to wake from wait state
         paused = false;
         notifyAll();
+    }
+
+    public synchronized void notifyCompletion() {
+        while(amountOccupied>0)try {wait();} catch (InterruptedException e) {}
+        isReceiving = false;
+        notifyAll();
+    }
+
+    public synchronized boolean isReceiving() {
+        return isReceiving;
     }
 
     public synchronized void insertChunk(byte[] input) {

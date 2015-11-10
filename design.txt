@@ -7,4 +7,22 @@
 
 Our solution employs a producer-consumer design as specified. Apart from the StudentPlayerApplet and the Panel classes, which form the GUI elements, we implemented three classes; a Producer class, a Consumer class and a BoundedBuffer class.
 
-The BoundedBuffer buffer class
+The BoundedBuffer class consists of an array which holds 10 seconds worth of audio at a time. The buffer is implemented using a byte array, and a pointers to the start of sections of data to read/write. We decided to use this structure as opposed to a structure of an array of objects containing chunks, as during testing this resulted in performance issues. These issues included stuttering, and overlapping audio playback, but were fixed by implementing a single byte array to represent the buffer.
+
+The buffer has methods to insert and remove 1 second chunks of audio at a time as standard. There are also pause, stop and resume functions which allow the buffer to pause the flow of data in and out, and allows for safe termination of the program.
+
+The buffer is notified of completion so that it knows when no more audio is to be expected, instead of assuming that the producer just hasn't sent anything in a while.
+
+The Producer class manages one chunk of audio at a time. It will continuously take 1 second chunks of audio and attempt to fill the buffer, procding until the entire song has been written or until the playback is terminated. It contains a public method stopProducer() which allows for safe exiting of the thread based on user input.
+
+The Consumer class will continually remove audio from the buffer, one chunk at a time until it is interrupted or until there is no more audio left to play. The buffer will return a null value when there are no more chunks to be read, so this is how the consumer knows to exit. The Consumer has pause and resume methods also to allow the playback to pause and resume. These commands are passed down to the buffer so the buffer will not allow data to be returned until it is resumed again. This class also contains a stopConsumer() method which allows safe termination even if the playback has not completed.
+
+The Player class contains a declaration of most of the variables and objects required by the program to run. This allows the variables to be passed to the Producer, Consumer and BoundedBuffer as neccessary. The Player receives input from the user and based on the case of the input an appropriate action is taken. The actions are preformed by calling methods provided by the Producer, Consumer or BoundedBuffer as appropriate.
+
+Inside the Player, volume, mute and unmute are manipulated via a Control option provided by the Line class. Pause, resume and stoping playback are manipulated by or own methods.
+
+The run() method of the Player clas sets up the input stream, and source data line for reading and writing audio to. Contols are obtained for volume nad mute control here, and the BoundedBuffer and Producer and Consumer are set up and run here also. 
+
+The Producer and Consumer are initialized as objects first before being run as threads. This allowed us to still be able to call their methods by referencing the objects themselves instead of the threads on which they run.
+
+The StudentPlayerApplet class is unchanged from the one received in the resources folder.

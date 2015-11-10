@@ -62,7 +62,6 @@ class Player extends Panel implements Runnable {
                         case "x": // stop playback
                             textarea.append(
                                 "Command received: Halt playback \n");
-                            textfield.setText(""); 
                             c.stopConsumer();
                             b.stopBuffer();
                             p.stopProducer();
@@ -71,7 +70,6 @@ class Player extends Panel implements Runnable {
                         case "q": // raise volume
                             textarea.append(
                                 "Command received: Increase Volume \n");
-                            textfield.setText("");
                             volCurrent = (volCurrent + 5.0F);
                             if (volCurrent > 6.0206F) {
                                 volCurrent = 6.0206F;
@@ -82,7 +80,6 @@ class Player extends Panel implements Runnable {
                         case "a": // lower volume
                             textarea.append(
                                 "Command received: Decrease Volume \n");
-                            textfield.setText("");
                             volCurrent = (volCurrent - 5.0F);
                             if (volCurrent < (-80.0F)) {
                                 volCurrent = (-80.0F);
@@ -98,7 +95,6 @@ class Player extends Panel implements Runnable {
                              */
                             textarea.append(
                                 "Command received: Pause Playback \n");
-                            textfield.setText("");
                             c.pauseConsumer();
                             break;
 
@@ -109,21 +105,18 @@ class Player extends Panel implements Runnable {
                              */
                             textarea.append(
                                 "Command received: Resume Playback \n");
-                            textfield.setText("");
                             c.resumeConsumer();
                             break;
 
                         case "m": // mute 
                             textarea.append(
                                 "Command received: Mute Audio \n");
-                            textfield.setText("");
                             muteCtrl.setValue(true);
                             break;
 
                         case "u": // unmute
                             textarea.append(
                                 "Command received: Unmute Audio \n");
-                            textfield.setText("");
                             muteCtrl.setValue(false);
                             break;
 

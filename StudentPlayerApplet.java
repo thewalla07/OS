@@ -47,9 +47,8 @@ class Player extends Panel implements Runnable {
         setLayout(new BorderLayout());
         add(BorderLayout.SOUTH, textfield);
         add(BorderLayout.CENTER, textarea);
-        
+
         textfield.addActionListener(
-   
             new ActionListener() {
 
                 public void actionPerformed(ActionEvent e) {
@@ -58,7 +57,8 @@ class Player extends Panel implements Runnable {
                     switch(input) {
 
                         case "x":
-                            textarea.append("Command received: Halt playback \n"); 
+                            textarea.append(
+                                "Command received: Halt playback \n"); 
                             textfield.setText(""); 
                             c.stopConsumer();
                             b.stopBuffer();
@@ -67,46 +67,56 @@ class Player extends Panel implements Runnable {
 
                         case "q":
                             // raise volume
-                            textarea.append("Command received: Increase Volume \n");
+                            textarea.append(
+                                "Command received: Increase Volume \n");
                             textfield.setText("");
-                            vol=(vol+5.0F);
-                            if(vol>6.0206F) vol=6.0206F;
+                            vol = (vol + 5.0F);
+                            if (vol > 6.0206F) {
+                                vol = 6.0206F;
+                            }  
                             volCtrl.setValue(vol);
                             break;
 
                         case "a":
                             // lower volume 
-                            textarea.append("Command received: Decrease Volume \n");
+                            textarea.append(
+                                "Command received: Decrease Volume \n");
                             textfield.setText("");
-                            vol=(vol-5.0F);
-                            if(vol<-80.0F) vol=-80.0F;
+                            vol = (vol - 5.0F);
+                            if (vol < (-80.0F)) {
+                                vol = (-80.0F);
+                            }
                             volCtrl.setValue(vol);
                             break;
 
                         case "p":
                             // pause playback
-                            textarea.append("Command received: Pause Playback \n");
+                            textarea.append(
+                                "Command received: Pause Playback \n");
                             textfield.setText("");
                             c.pauseConsumer();
                             break;
 
                         case "r":
                             // resume playback
-                             textarea.append("Command received: Resume Playback \n");
+                             textarea.append(
+                                "Command received: Resume Playback \n");
                              textfield.setText("");
                             c.resumeConsumer();
                             break;
 
                         case "m":
                             // mute 
-                            textarea.append("Command received: Mute Audio \n");
+                            textarea.append(
+                                "Command received: Mute Audio \n");
                             textfield.setText("");
                             muteCtrl.setValue(true);
                             break;
 
                         case "u":
                             // unmute
-                            textarea.append("Command received: Unmute Audio \n");
+                            textarea.append(
+                                "Command received: Unmute Audio \n");
                             textfield.setText("");
                             muteCtrl.setValue(false);
                             break;
@@ -129,13 +139,14 @@ class Player extends Panel implements Runnable {
    
             s = AudioSystem.getAudioInputStream(new File(filename));
             format = s.getFormat();   
-            textarea.append("Audio file: " + filename + "\n" );
-            textarea.append("Audio format: " + format.toString() + "\n" );
-            int durationInSeconds = (int) ((s.getFrameLength()) / format.getFrameRate());  
-            textarea.append("Audio file duration: " + durationInSeconds + " seconds \n" );
+            textarea.append("Audio file: " + filename + "\n");
+            textarea.append("Audio format: " + format.toString() + "\n");
+            int durationInSeconds =
+                        (int) ((s.getFrameLength()) / format.getFrameRate());  
+            textarea.append(
+                "Audio file duration: " + durationInSeconds + " seconds \n");
             info = new DataLine.Info(SourceDataLine.class, format);
             if (!AudioSystem.isLineSupported(info)) {
-   
                 throw new UnsupportedAudioFileException();
             }
 
@@ -207,7 +218,8 @@ class Consumer implements Runnable {
     private boolean done, paused;
     private TextArea textarea;
 
-    Consumer(int oneSecond0, SourceDataLine line0, BoundedBuffer b0, TextArea t0) {
+    Consumer(int oneSecond0, SourceDataLine line0,
+                BoundedBuffer b0, TextArea t0) {
 
         oneSecond = oneSecond0;
         line = line0;
@@ -220,17 +232,14 @@ class Consumer implements Runnable {
     }
 
     public void stopConsumer() {
-
         done = true;
     }
     
     public void pauseConsumer() {
-
         b.pauseBuffer();
     }
 
     public void resumeConsumer() {
-
         b.resumeBuffer();
     }
 
@@ -241,9 +250,8 @@ class Consumer implements Runnable {
             while (!done) {
 
                 audioChunk = b.removeChunk();
-                if(audioChunk == null) break;
+                if (audioChunk == null) break;
                 while (paused) {
-
                     try {wait();} catch (InterruptedException f) {}
                 }
                 line.write(audioChunk, 0, audioChunk.length);
@@ -267,7 +275,8 @@ class Producer implements Runnable {
     private boolean done;
     private TextArea textarea;
 
-    Producer(int oneSecond0, AudioInputStream s0, BoundedBuffer b0, TextArea t0) {
+    Producer(int oneSecond0, AudioInputStream s0,
+                BoundedBuffer b0, TextArea t0) {
         oneSecond = oneSecond0;
         s = s0;
         b = b0;
@@ -287,7 +296,6 @@ class Producer implements Runnable {
         try {
 
             while (!done && bytesRead != -1) {
-
                 bytesRead = s.read(audioChunk);
                 b.insertChunk(audioChunk);
             }
@@ -349,9 +357,10 @@ class BoundedBuffer {
 
         try {
 
-            while (amountOccupied == 10) {wait();}
+            while (amountOccupied == 10) {
+                wait();
+            }
             for (int i = 0; i < input.length; i++) {
-
                 bufferArray[(nextIn + i) % (chunkSize * 10)] = input[i];
             }
             nextIn += input.length % (chunkSize * 10);
@@ -371,13 +380,13 @@ class BoundedBuffer {
 
         try {
 
-            if(amountOccupied == 0 && isReceiving == false) return null;
+            if (amountOccupied == 0 && isReceiving == false) {
+                return null;
+            }
             while (amountOccupied == 0 || paused) {
-
                 wait();
             }
             for (int j = 0; j < transfer.length; j++) {
-
                 transfer[j] = bufferArray[(nextOut + j) % (chunkSize * 10)];
             }
             nextOut += transfer.length % (chunkSize * 10);
@@ -390,7 +399,7 @@ class BoundedBuffer {
             System.out.println("Remove chunk failed");
             return null;
         } catch (ArrayIndexOutOfBoundsException e) {
-            
+
             e.printStackTrace();
             return null;
         }

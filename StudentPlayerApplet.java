@@ -83,6 +83,11 @@ class Player extends Panel implements Runnable {
 
                         case "p":
                             /* pause playback */
+                            /* pausing is delayed because the 
+                                consumer must finish writing 
+                                its current buffer to the audio
+                                device before it can respond to
+                                the method call */
                             textarea.append("Command received: Pause Playback \n");
                             textfield.setText("");
                             c.pauseConsumer();
@@ -90,6 +95,9 @@ class Player extends Panel implements Runnable {
 
                         case "r":
                             /* resume playback */
+                            /* resuming playback is near 
+                                instant in contrast to the
+                                pausing function */
                              textarea.append("Command received: Resume Playback \n");
                              textfield.setText("");
                             c.resumeConsumer();
@@ -253,6 +261,12 @@ class Consumer implements Runnable {
                     there is nothing left for the
                     consumer to play back */
                 if(audioChunk == null) break;
+                /* because line.write() blocks until
+                    it has fully written audio, this 
+                    causes a delay for the pause funciton
+                    to activate. The funciton must wait
+                    approx 1 second before the pause loop
+                    can be reached */
                 while (paused) {
 
                     try {wait();} catch (InterruptedException f) {}
@@ -314,45 +328,46 @@ class Producer implements Runnable {
 
 class BoundedBuffer {
 
-    private byte[] bufferArray;
-    private byte[] transfer;
+    private byte[] bufferArray, transfer;
     private int nextIn, nextOut, amountOccupied, chunkSize, i, j;
     private boolean isFull, isEmpty, paused, isReceiving;
 
-    BoundedBuffer(int chunkSize0) {
+    BoundedBuffer(int cS0) {
 
-        bufferArray = new byte[10 * chunkSize0];
+        chunkSize = cS0;
+        bufferArray = new byte[10 * chunkSize];
+        transfer = new byte[chunkSize];
         nextIn = 0;
         nextOut = 0;
-        amountOccupied=0;
-        chunkSize = chunkSize0;
-        isFull = true;
-        isEmpty = true;
-        transfer = new byte[chunkSize];
+        amountOccupied = 0;
         paused = false;
         isReceiving = true;
     }
 
     public synchronized void stopBuffer() {
-        // set amountOccupied=0 to allow producer to wake from wait state
+        /* set amountOccupied=0 to allow producer 
+            to wake from wait state and to exit */
         amountOccupied = 0;
         notifyAll();
     }
 
     public synchronized void pauseBuffer() {
-        // set amountOccupied=0 to allow producer to wake from wait state
+        /* set the removeChunk method to wait before
+            returning the next chunk */
         paused = true;
         notifyAll();
     }
 
     public synchronized void resumeBuffer() {
-        // set amountOccupied=0 to allow producer to wake from wait state
+        /* allow the removeChunk method to continue
+            and start returning chunks of audio */
         paused = false;
         notifyAll();
     }
 
     public synchronized void notifyCompletion() {
-        //notified that the buffer is no longer receiving data from producer
+        /* notified that the buffer is no longer 
+            receiving data from producer */
         isReceiving = false;
     }
 
@@ -361,10 +376,15 @@ class BoundedBuffer {
         try {
 
             while (amountOccupied == 10) {wait();}
+            /* nextIn is used as a pointer to the index to
+                the location for the next byte to be stored
+                in. Variable i is used as the increment from
+                the pointer */
             for (int i = 0; i < input.length; i++) {
 
                 bufferArray[(nextIn + i) % (chunkSize * 10)] = input[i];
             }
+
             nextIn += input.length % (chunkSize * 10);
             amountOccupied++;
             notifyAll();
@@ -387,6 +407,8 @@ class BoundedBuffer {
 
                 wait();
             }
+            /* nextOut is used in a similar fashion to 
+                nextIn above */
             for (int j = 0; j < transfer.length; j++) {
 
                 transfer[j] = bufferArray[(nextOut + j) % (chunkSize * 10)];

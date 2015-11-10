@@ -224,8 +224,9 @@ class Consumer implements Runnable {
 
         try {
 
-            while (!done || b.isReceiving()) {
+            while (!done) {
                 audioChunk = b.removeChunk();
+                if(audioChunk == null) break;
                 while (paused) {
                     try {wait();} catch (InterruptedException f) {}
                 }
@@ -319,13 +320,7 @@ class BoundedBuffer {
     }
 
     public synchronized void notifyCompletion() {
-        while(amountOccupied>0)try {wait();} catch (InterruptedException e) {}
         isReceiving = false;
-        notifyAll();
-    }
-
-    public synchronized boolean isReceiving() {
-        return isReceiving;
     }
 
     public synchronized void insertChunk(byte[] input) {
@@ -351,6 +346,7 @@ class BoundedBuffer {
     public synchronized byte[] removeChunk() {
 
         try{
+            if(amountOccupied == 0 && isReceiving == false) return null;
             while (amountOccupied == 0 || paused) {
                 wait();
             }
